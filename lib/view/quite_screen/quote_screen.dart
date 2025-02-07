@@ -24,8 +24,11 @@ class _QuoteScreenState extends State<QuoteScreen> {
   }
 
   void saveQuote() async {
-    if (quoteText.isNotEmpty) {
-      await _databaseService.insertQuote(Quote(text: quoteText, author: authorText));
+ if (quoteText.isNotEmpty) {
+      await _databaseService.insertQuote(
+        Quote(text: quoteText, author: authorText),
+        isFavorite: true, // Добавляем isFavorite
+      );
       showCupertinoDialog(
         context: context,
         builder: (context) => CupertinoAlertDialog(
@@ -43,20 +46,23 @@ class _QuoteScreenState extends State<QuoteScreen> {
   }
 
     Future<void> loadRandomQuote() async {
-    try {
-      Quote? quote = await _quoteRepository.fetchRandomQuote();
-      setState(() {
-        quoteText = quote?.text ?? "Нет данных";
-        authorText = quote?.author ?? "Неизвестный автор";
-      });
-    } catch (e) {
-      setState(() {
-        quoteText = "Ошибка загрузки цитаты";
-        authorText = "";
-      });
-    }
-  }
+  try {
+    Quote? quote = await _quoteRepository.fetchRandomQuote();
+    if (!mounted) return; // Проверяем, не уничтожен ли виджет
 
+    setState(() {
+      quoteText = quote?.text ?? "Нет данных";
+      authorText = quote?.author ?? "Неизвестный автор";
+    });
+  } catch (e) {
+    if (!mounted) return; // Еще раз проверяем перед setState()
+
+    setState(() {
+      quoteText = "Ошибка загрузки цитаты";
+      authorText = "";
+    });
+  }
+}
     @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;

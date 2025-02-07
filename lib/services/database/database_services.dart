@@ -10,38 +10,34 @@ class DatabaseService {
   final CollectionReference firebaseQuotesCollection =
       FirebaseFirestore.instance.collection('quotes');
 
-  // Insert a quote into Firestore
-  Future<void> insertQuote(Quote quote) async {
+  // Добавление или обновление цитаты
+  Future<void> insertQuote(Quote quote, {bool isFavorite = false}) async {
     try {
-      await firebaseQuotesCollection.add({
+      await firebaseQuotesCollection.doc(quote.text).set({
         'text': quote.text,
         'author': quote.author,
+        'isFavorite': isFavorite, // Новое поле
       });
     } catch (e) {
-      print('Error inserting quote: $e');
+      print('Ошибка при добавлении цитаты: $e');
     }
   }
 
-  // Delete a quote from Firestore
+  // Удаление цитаты по её тексту (используем text как documentId)
   Future<void> deleteQuote(Quote quote) async {
     try {
-      QuerySnapshot snapshot = await firebaseQuotesCollection
-          .where('text', isEqualTo: quote.text)
-          .where('author', isEqualTo: quote.author)
-          .get();
-
-      for (var doc in snapshot.docs) {
-        await doc.reference.delete();
-      }
+      await firebaseQuotesCollection.doc(quote.text).delete();
     } catch (e) {
-      print('Error deleting quote: $e');
+      print('Ошибка при удалении цитаты: $e');
     }
   }
 
-  // Get all favorite quotes from Firestore
+  // Получение всех избранных цитат
   Future<List<Quote>> getFavoriteQuotes() async {
     try {
-      QuerySnapshot snapshot = await firebaseQuotesCollection.get();
+      QuerySnapshot snapshot = await firebaseQuotesCollection
+          .where('isFavorite', isEqualTo: true) // Фильтрация по избранным
+          .get();
 
       return snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
@@ -51,8 +47,19 @@ class DatabaseService {
         );
       }).toList();
     } catch (e) {
-      print('Error fetching favorite quotes: $e');
+      print('Ошибка при получении избранных цитат: $e');
       return [];
+    }
+  }
+
+  // Обновление статуса избранной цитаты
+  Future<void> updateFavoriteStatus(Quote quote, bool isFavorite) async {
+    try {
+      await firebaseQuotesCollection.doc(quote.text).update({
+        'isFavorite': isFavorite,
+      });
+    } catch (e) {
+      print('Ошибка при обновлении статуса избранного: $e');
     }
   }
 }
